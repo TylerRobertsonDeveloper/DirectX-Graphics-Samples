@@ -14,6 +14,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="Logo.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="SmallLogo.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="SplashScreen.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="StoreLogo.png">
+      <Filter>Resource Files</Filter>
+    </Image>
     <Image Include="Textures\default.DDS">
       <Filter>Resource Files</Filter>
     </Image>
@@ -173,6 +185,9 @@
     <Image Include="Textures\Models\white.DDS">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="WideLogo.png">
+      <Filter>Resource Files</Filter>
+    </Image>
     <Image Include="Textures\fire.dds">
       <Filter>Resource Files</Filter>
     </Image>
@@ -190,9 +205,18 @@
     <None Include="Shaders\ModelViewerRS.hlsli">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\FillLightGridCS.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\LightGrid.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ModelViewer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ForwardPlusLighting.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -209,5 +233,25 @@
     <FxCompile Include="Shaders\DepthViewerPS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\FillLightGridCS_8.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\FillLightGridCS_16.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\FillLightGridCS_24.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\FillLightGridCS_32.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\WaveTileCountPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ForwardPlusLighting.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

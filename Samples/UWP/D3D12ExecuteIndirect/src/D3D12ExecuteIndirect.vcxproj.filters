@@ -73,9 +73,6 @@
     <AppxManifest Include="Package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="D3D12ExecuteIndirect_TemporaryKey.pfx" />
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="SplashScreen.scale-200.png">
       <Filter>Assets\AppxPackage</Filter>
     </Image>
@@ -99,5 +96,8 @@
     <CustomBuild Include="compute.hlsl">
       <Filter>Assets\Shaders</Filter>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

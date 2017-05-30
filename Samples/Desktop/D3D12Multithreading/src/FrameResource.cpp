@@ -18,20 +18,18 @@ FrameResource::FrameResource(ID3D12Device* pDevice, ID3D12PipelineState* pPso, I
 	m_pipelineState(pPso),
 	m_pipelineStateShadowMap(pShadowMapPso)
 {
-	for (int i = 0; i < CommandListCount; i++)
+	for (UINT i = 0; i < CommandListCount; i++)
 	{
 		ThrowIfFailed(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
 		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[i].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandLists[i])));
 
-		WCHAR name[30];
-		swprintf_s(name, L"m_commandLists[%d]", i);
-		m_commandLists[i]->SetName(name);
+		NAME_D3D12_OBJECT_INDEXED(m_commandLists, i);
 
 		// Close these command lists; don't record into them for now.
 		ThrowIfFailed(m_commandLists[i]->Close());
 	}
 
-	for (int i = 0; i < NumContexts; i++)
+	for (UINT i = 0; i < NumContexts; i++)
 	{
 		// Create command list allocators for worker threads. One alloc is 
 		// for the shadow pass command list, and one is for the scene pass.
@@ -41,11 +39,8 @@ FrameResource::FrameResource(ID3D12Device* pDevice, ID3D12PipelineState* pPso, I
 		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_shadowCommandAllocators[i].Get(), m_pipelineStateShadowMap.Get(), IID_PPV_ARGS(&m_shadowCommandLists[i])));
 		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_sceneCommandAllocators[i].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_sceneCommandLists[i])));
 
-		WCHAR name[30];
-		swprintf_s(name, L"m_shadowCommandLists[%d]", i);
-		m_shadowCommandLists[i]->SetName(name);
-		swprintf_s(name, L"m_sceneCommandLists[%d]", i);
-		m_sceneCommandLists[i]->SetName(name);
+		NAME_D3D12_OBJECT_INDEXED(m_shadowCommandLists, i);
+		NAME_D3D12_OBJECT_INDEXED(m_sceneCommandLists, i);
 
 		// Close these command lists; don't record into them for now. We will 
 		// reset them to a recording state when we start the render loop.
@@ -125,7 +120,7 @@ FrameResource::FrameResource(ID3D12Device* pDevice, ID3D12PipelineState* pPso, I
 	cbvSrvGpuHandle.Offset(cbvSrvDescriptorSize);
 
 	// Create the constant buffers.
-	const UINT constantBufferSize = (sizeof(ConstantBuffer) + (D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1)) & ~(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1); // must be a multiple 256 bytes
+	const UINT constantBufferSize = (sizeof(SceneConstantBuffer) + (D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1)) & ~(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1); // must be a multiple 256 bytes
 	ThrowIfFailed(pDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
@@ -203,8 +198,8 @@ FrameResource::~FrameResource()
 // this frame resource.
 void FrameResource::WriteConstantBuffers(D3D12_VIEWPORT* pViewport, Camera* pSceneCamera, Camera lightCams[NumLights], LightState lights[NumLights])
 {
-	ConstantBuffer sceneConsts = {}; 
-	ConstantBuffer shadowConsts = {};
+	SceneConstantBuffer sceneConsts = {}; 
+	SceneConstantBuffer shadowConsts = {};
 	
 	// Scale down the world a bit.
 	::XMStoreFloat4x4(&sceneConsts.model, XMMatrixScaling(0.1f, 0.1f, 0.1f));
@@ -230,8 +225,8 @@ void FrameResource::WriteConstantBuffers(D3D12_VIEWPORT* pViewport, Camera* pSce
 
 	shadowConsts.ambientColor = sceneConsts.ambientColor = { 0.1f, 0.2f, 0.3f, 1.0f };
 
-	memcpy(mp_sceneConstantBufferWO, &sceneConsts, sizeof(ConstantBuffer));
-	memcpy(mp_shadowConstantBufferWO, &shadowConsts, sizeof(ConstantBuffer));
+	memcpy(mp_sceneConstantBufferWO, &sceneConsts, sizeof(SceneConstantBuffer));
+	memcpy(mp_shadowConstantBufferWO, &shadowConsts, sizeof(SceneConstantBuffer));
 }
 
 void FrameResource::Init()

@@ -37,7 +37,8 @@ private:
 	static const UINT FrameCount = 3;
 	static const UINT TriangleCount = 1024;
 	static const UINT TriangleResourceCount = TriangleCount * FrameCount;
-	static const UINT CommandBufferSizePerFrame;
+	static const UINT CommandSizePerFrame;				// The size of the indirect commands to draw all of the triangles in a single frame.
+	static const UINT CommandBufferCounterOffset;		// The offset of the UAV counter in the processed command buffer.
 	static const UINT ComputeThreadBlockSize = 128;		// Should match the value in compute.hlsl.
 	static const float TriangleHalfWidth;				// The x and y offsets used by the triangle vertices.
 	static const float TriangleDepth;					// The z offset used by the triangle vertices.
@@ -50,7 +51,7 @@ private:
 	};
 
 	// Constant buffer definition.
-	struct ConstantBufferData
+	struct SceneConstantBuffer
 	{
 		XMFLOAT4 velocity;
 		XMFLOAT4 offset;
@@ -99,19 +100,19 @@ private:
 		CbvSrvOffset = 0,													// SRV that points to the constant buffers used by the rendering thread.
 		CommandsOffset = CbvSrvOffset + 1,									// SRV that points to all of the indirect commands.
 		ProcessedCommandsOffset = CommandsOffset + 1,						// UAV that records the commands we actually want to execute.
-		CbvSrvUavDescriptorCountPerFrame = ProcessedCommandsOffset + 1		// 1 CBV per triangle + [2 SRVs + 1 UAV for the compute shader].
+		CbvSrvUavDescriptorCountPerFrame = ProcessedCommandsOffset + 1		// 2 SRVs + 1 UAV for the compute shader.
 	};
 
 	// Each triangle gets its own constant buffer per frame.
-	std::vector<ConstantBufferData> m_constantBufferData;
+	std::vector<SceneConstantBuffer> m_constantBufferData;
 	UINT8* m_pCbvDataBegin;
 
 	CSRootConstants m_csRootConstants;	// Constants for the compute shader.
 	bool m_enableCulling;				// Toggle whether the compute shader pre-processes the indirect commands.
 
 	// Pipeline objects.
-	D3D12_VIEWPORT m_viewport;
-	D3D12_RECT m_scissorRect;
+	CD3DX12_VIEWPORT m_viewport;
+	CD3DX12_RECT m_scissorRect;
 	D3D12_RECT m_cullingScissorRect;
 	ComPtr<IDXGISwapChain3> m_swapChain;
 	ComPtr<ID3D12Device> m_device;
@@ -155,4 +156,14 @@ private:
 	void PopulateCommandLists();
 	void WaitForGpu();
 	void MoveToNextFrame();
+
+	// We pack the UAV counter into the same buffer as the commands rather than create
+	// a separate 64K resource/heap for it. The counter must be aligned on 4K boundaries,
+	// so we pad the command buffer (if necessary) such that the counter will be placed
+	// at a valid location in the buffer.
+	static inline UINT AlignForUavCounter(UINT bufferSize)
+	{
+		const UINT alignment = D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT;
+		return (bufferSize + (alignment - 1)) & ~(alignment - 1);
+	}
 };

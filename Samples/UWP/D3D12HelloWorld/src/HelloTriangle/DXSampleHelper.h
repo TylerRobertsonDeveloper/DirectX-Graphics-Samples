@@ -15,7 +15,7 @@ inline void ThrowIfFailed(HRESULT hr)
 {
 	if (FAILED(hr))
 	{
-		throw;
+		throw std::exception();
 	}
 }
 
@@ -23,14 +23,14 @@ inline void GetAssetsPath(_Out_writes_(pathSize) WCHAR* path, UINT pathSize)
 {
 	if (path == nullptr)
 	{
-		throw;
+		throw std::exception();
 	}
 
 	DWORD size = GetModuleFileName(nullptr, path, pathSize);
 	if (size == 0 || size == pathSize)
 	{
 		// Method failed or path was truncated.
-		throw;
+		throw std::exception();
 	}
 
 	WCHAR* lastSlash = wcsrchr(path, L'\\');
@@ -55,18 +55,18 @@ inline HRESULT ReadDataFromFile(LPCWSTR filename, byte** data, UINT* size)
 	Wrappers::FileHandle file(CreateFile2(filename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, &extendedParams));
 	if (file.Get() == INVALID_HANDLE_VALUE)
 	{
-		throw new std::exception();
+		throw std::exception();
 	}
 
 	FILE_STANDARD_INFO fileInfo = {};
 	if (!GetFileInformationByHandleEx(file.Get(), FileStandardInfo, &fileInfo, sizeof(fileInfo)))
 	{
-		throw new std::exception();
+		throw std::exception();
 	}
 
 	if (fileInfo.EndOfFile.HighPart != 0)
 	{
-		throw new std::exception();
+		throw std::exception();
 	}
 
 	*data = reinterpret_cast<byte*>(malloc(fileInfo.EndOfFile.LowPart));
@@ -74,7 +74,7 @@ inline HRESULT ReadDataFromFile(LPCWSTR filename, byte** data, UINT* size)
 
 	if (!ReadFile(file.Get(), *data, fileInfo.EndOfFile.LowPart, nullptr, nullptr))
 	{
-		throw new std::exception();
+		throw std::exception();
 	}
 
 	return S_OK;
@@ -86,12 +86,25 @@ inline void SetName(ID3D12Object* pObject, LPCWSTR name)
 {
 	pObject->SetName(name);
 }
+inline void SetNameIndexed(ID3D12Object* pObject, LPCWSTR name, UINT index)
+{
+	WCHAR fullName[50];
+	if (swprintf_s(fullName, L"%s[%u]", name, index) > 0)
+	{
+		pObject->SetName(fullName);
+	}
+}
 #else
 inline void SetName(ID3D12Object*, LPCWSTR)
+{
+}
+inline void SetNameIndexed(ID3D12Object*, LPCWSTR, UINT)
 {
 }
 #endif
 
 // Naming helper for ComPtr<T>.
 // Assigns the name of the variable as the name of the object.
+// The indexed variant will include the index in the name of the object.
 #define NAME_D3D12_OBJECT(x) SetName(x.Get(), L#x)
+#define NAME_D3D12_OBJECT_INDEXED(x, n) SetNameIndexed(x[n].Get(), L#x, n)

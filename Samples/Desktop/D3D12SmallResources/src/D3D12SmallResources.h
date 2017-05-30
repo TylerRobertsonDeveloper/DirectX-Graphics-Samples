@@ -22,7 +22,8 @@ using namespace DirectX;
 // An example of this can be found in the class method: OnDestroy().
 using Microsoft::WRL::ComPtr;
 
-// Illustrate how queries are used in conjunction with predication.
+// Illustrate how small texture resources can be packed into 64K pages for more
+// efficient memory usage.
 class D3D12SmallResources : public DXSample
 {
 public:
@@ -51,8 +52,8 @@ private:
 	};
 
 	// Pipeline objects.
-	D3D12_VIEWPORT m_viewport;
-	D3D12_RECT m_scissorRect;
+	CD3DX12_VIEWPORT m_viewport;
+	CD3DX12_RECT m_scissorRect;
 	ComPtr<IDXGISwapChain3> m_swapChain;
 	ComPtr<IDXGIAdapter3> m_adapter;
 	ComPtr<ID3D12Device> m_device;
