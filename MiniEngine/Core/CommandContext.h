@@ -223,7 +223,8 @@ public:
     void SetPrimitiveTopology( D3D12_PRIMITIVE_TOPOLOGY Topology );
 
     void SetPipelineState( const GraphicsPSO& PSO );
-    void SetConstants( UINT RootIndex, UINT NumConstants, const void* pConstants );
+    void SetConstantArray( UINT RootIndex, UINT NumConstants, const void* pConstants );
+    void SetConstant( UINT RootIndex, DWParam Val, UINT Offset = 0 );
     void SetConstants( UINT RootIndex, DWParam X );
     void SetConstants( UINT RootIndex, DWParam X, DWParam Y );
     void SetConstants( UINT RootIndex, DWParam X, DWParam Y, DWParam Z );
@@ -252,7 +253,9 @@ public:
         UINT StartVertexLocation = 0, UINT StartInstanceLocation = 0);
     void DrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation,
         INT BaseVertexLocation, UINT StartInstanceLocation);
-    void DrawIndirect( GpuBuffer& ArgumentBuffer, size_t ArgumentBufferOffset = 0 );
+    void DrawIndirect( GpuBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset = 0 );
+    void ExecuteIndirect(CommandSignature& CommandSig, GpuBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,
+        uint32_t MaxCommands = 1, GpuBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0);
 
 private:
 };
@@ -269,7 +272,8 @@ public:
     void SetRootSignature( const RootSignature& RootSig );
 
     void SetPipelineState( const ComputePSO& PSO );
-    void SetConstants( UINT RootIndex, UINT NumConstants, const void* pConstants );
+    void SetConstantArray( UINT RootIndex, UINT NumConstants, const void* pConstants );
+    void SetConstant( UINT RootIndex, DWParam Val, UINT Offset = 0 );
     void SetConstants( UINT RootIndex, DWParam X );
     void SetConstants( UINT RootIndex, DWParam X, DWParam Y );
     void SetConstants( UINT RootIndex, DWParam X, DWParam Y, DWParam Z );
@@ -290,7 +294,9 @@ public:
     void Dispatch1D( size_t ThreadCountX, size_t GroupSizeX = 64);
     void Dispatch2D( size_t ThreadCountX, size_t ThreadCountY, size_t GroupSizeX = 8, size_t GroupSizeY = 8);
     void Dispatch3D( size_t ThreadCountX, size_t ThreadCountY, size_t ThreadCountZ, size_t GroupSizeX, size_t GroupSizeY, size_t GroupSizeZ );
-    void DispatchIndirect( GpuBuffer& ArgumentBuffer, size_t ArgumentBufferOffset = 0 );
+    void DispatchIndirect( GpuBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset = 0 );
+    void ExecuteIndirect(CommandSignature& CommandSig, GpuBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,
+        uint32_t MaxCommands = 1, GpuBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0);
 
 private:
 };
@@ -372,9 +378,14 @@ inline void GraphicsContext::SetPrimitiveTopology( D3D12_PRIMITIVE_TOPOLOGY Topo
     m_CommandList->IASetPrimitiveTopology(Topology);
 }
 
-inline void ComputeContext::SetConstants( UINT RootEntry, UINT NumConstants, const void* pConstants )
+inline void ComputeContext::SetConstantArray( UINT RootEntry, UINT NumConstants, const void* pConstants )
 {
     m_CommandList->SetComputeRoot32BitConstants( RootEntry, NumConstants, pConstants, 0 );
+}
+
+inline void ComputeContext::SetConstant( UINT RootEntry, DWParam Val, UINT Offset )
+{
+    m_CommandList->SetComputeRoot32BitConstant( RootEntry, Val.Uint, Offset );
 }
 
 inline void ComputeContext::SetConstants( UINT RootEntry, DWParam X )
@@ -403,9 +414,14 @@ inline void ComputeContext::SetConstants( UINT RootEntry, DWParam X, DWParam Y, 
     m_CommandList->SetComputeRoot32BitConstant( RootEntry, W.Uint, 3 );
 }
 
-inline void GraphicsContext::SetConstants( UINT RootIndex, UINT NumConstants, const void* pConstants )
+inline void GraphicsContext::SetConstantArray( UINT RootIndex, UINT NumConstants, const void* pConstants )
 {
     m_CommandList->SetGraphicsRoot32BitConstants( RootIndex, NumConstants, pConstants, 0 );
+}
+
+inline void GraphicsContext::SetConstant( UINT RootEntry, DWParam Val, UINT Offset )
+{
+    m_CommandList->SetGraphicsRoot32BitConstant( RootEntry, Val.Uint, Offset );
 }
 
 inline void GraphicsContext::SetConstants( UINT RootIndex, DWParam X )
@@ -688,22 +704,38 @@ inline void GraphicsContext::DrawIndexedInstanced(UINT IndexCountPerInstance, UI
     m_CommandList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
 }
 
-inline void GraphicsContext::DrawIndirect( GpuBuffer& ArgumentBuffer, size_t ArgumentBufferOffset )
+inline void GraphicsContext::ExecuteIndirect(CommandSignature& CommandSig,
+    GpuBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset,
+    uint32_t MaxCommands, GpuBuffer* CommandCounterBuffer, uint64_t CounterOffset)
 {
     FlushResourceBarriers();
-     m_DynamicViewDescriptorHeap.CommitGraphicsRootDescriptorTables(m_CommandList);
-     m_DynamicSamplerDescriptorHeap.CommitGraphicsRootDescriptorTables(m_CommandList);
-     m_CommandList->ExecuteIndirect(Graphics::DrawIndirectCommandSignature.GetSignature(), 1, ArgumentBuffer.GetResource(),
-        (UINT64)ArgumentBufferOffset, nullptr, 0);
+    m_DynamicViewDescriptorHeap.CommitGraphicsRootDescriptorTables(m_CommandList);
+    m_DynamicSamplerDescriptorHeap.CommitGraphicsRootDescriptorTables(m_CommandList);
+    m_CommandList->ExecuteIndirect(CommandSig.GetSignature(), MaxCommands,
+        ArgumentBuffer.GetResource(), ArgumentStartOffset,
+        CommandCounterBuffer == nullptr ? nullptr : CommandCounterBuffer->GetResource(), CounterOffset);
 }
 
-inline void ComputeContext::DispatchIndirect( GpuBuffer& ArgumentBuffer, size_t ArgumentBufferOffset )
+inline void GraphicsContext::DrawIndirect(GpuBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset)
+{
+    ExecuteIndirect(Graphics::DrawIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
+}
+
+inline void ComputeContext::ExecuteIndirect(CommandSignature& CommandSig,
+    GpuBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset,
+    uint32_t MaxCommands, GpuBuffer* CommandCounterBuffer, uint64_t CounterOffset)
 {
     FlushResourceBarriers();
     m_DynamicViewDescriptorHeap.CommitComputeRootDescriptorTables(m_CommandList);
     m_DynamicSamplerDescriptorHeap.CommitComputeRootDescriptorTables(m_CommandList);
-    m_CommandList->ExecuteIndirect(Graphics::DispatchIndirectCommandSignature.GetSignature(), 1, ArgumentBuffer.GetResource(),
-        (UINT64)ArgumentBufferOffset, nullptr, 0);
+    m_CommandList->ExecuteIndirect(CommandSig.GetSignature(), MaxCommands,
+        ArgumentBuffer.GetResource(), ArgumentStartOffset,
+        CommandCounterBuffer == nullptr ? nullptr : CommandCounterBuffer->GetResource(), CounterOffset);
+}
+
+inline void ComputeContext::DispatchIndirect( GpuBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset )
+{
+    ExecuteIndirect(Graphics::DispatchIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
 }
 
 inline void CommandContext::CopyBuffer( GpuResource& Dest, GpuResource& Src )
@@ -744,29 +776,4 @@ inline void CommandContext::InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, uint32_
 inline void CommandContext::ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, uint32_t NumQueries)
 {
     m_CommandList->ResolveQueryData(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, NumQueries, pReadbackHeap, 0);
-}
-
-inline void CommandContext::PIXBeginEvent(const wchar_t* label)
-{
-#if defined(RELEASE) || _MSC_VER < 1800
-    (label);
-#else
-    ::PIXBeginEvent(m_CommandList, 0, label);
-#endif
-}
-
-inline void CommandContext::PIXEndEvent(void)
-{
-#if !defined(RELEASE) && _MSC_VER >= 1800
-    ::PIXEndEvent(m_CommandList);
-#endif
-}
-
-inline void CommandContext::PIXSetMarker(const wchar_t* label)
-{
-#if defined(RELEASE) || _MSC_VER < 1800
-    (label);
-#else
-    ::PIXSetMarker(m_CommandList, 0, label);
-#endif
 }

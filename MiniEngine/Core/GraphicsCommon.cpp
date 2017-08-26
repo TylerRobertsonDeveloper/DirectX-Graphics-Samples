@@ -15,6 +15,7 @@
 #include "GraphicsCommon.h"
 #include "SamplerManager.h"
 #include "CommandSignature.h"
+#include "BitonicSort.h"
 
 namespace Graphics
 {
@@ -61,6 +62,12 @@ namespace Graphics
 
     CommandSignature DispatchIndirectCommandSignature(1);
     CommandSignature DrawIndirectCommandSignature(1);
+}
+
+namespace BitonicSort
+{
+    void Initialize(void);
+    void Shutdown(void);
 }
 
 void Graphics::InitializeCommonState(void)
@@ -195,4 +202,14 @@ void Graphics::InitializeCommonState(void)
 
     DrawIndirectCommandSignature[0].Draw();
     DrawIndirectCommandSignature.Finalize();
+
+    BitonicSort::Initialize();
+}
+
+void Graphics::DestroyCommonState(void)
+{
+    DispatchIndirectCommandSignature.Destroy();
+    DrawIndirectCommandSignature.Destroy();
+    
+    BitonicSort::Shutdown();
 }
