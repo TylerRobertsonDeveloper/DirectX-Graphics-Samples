@@ -18,7 +18,7 @@
     <ProjectGuid>{19585C81-FB12-4A4B-B700-CCE253BDBA02}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>D3D12Raytracing</RootNamespace>
-    <ProjectName>D3D12RaytracingRealTimeDenoisedAmbientOcclusion</ProjectName>
+    <ProjectName>D3D12RTDenoisedAmbientOcclusion</ProjectName>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -75,8 +75,10 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <FxCompile>
-      <EntryPointName></EntryPointName>
-      <ObjectFileOutput></ObjectFileOutput>
+      <EntryPointName>
+      </EntryPointName>
+      <ObjectFileOutput>
+      </ObjectFileOutput>
       <AdditionalIncludeDirectories>$(ProjectDir);RTAO/shaders;SampleCore/shaders;SampleCore/shaders/util</AdditionalIncludeDirectories>
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.3</ShaderModel>
@@ -334,7 +336,8 @@
       <VariableName Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">g_p%(Filename)</VariableName>
     </FxCompile>
     <FxCompile Include="SampleCore\Shaders\Pathtracer.hlsl">
-      <EntryPointName></EntryPointName>
+      <EntryPointName>
+      </EntryPointName>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.3</ShaderModel>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zpr %(AdditionalOptions)</AdditionalOptions>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.3</ShaderModel>
@@ -409,7 +412,8 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
     <FxCompile Include="RTAO\Shaders\RTAO.hlsl">
-      <EntryPointName></EntryPointName>
+      <EntryPointName>
+      </EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.3</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
