@@ -25,8 +25,8 @@ def copy_template_file(filename, project, guid):
     output_filename = os.path.join(project, filename)
     output_filename = output_filename.replace('AppTemplate', project)
     output_filename = output_filename.replace('LibTemplate', project)
-    with open(template_filename, 'r') as infile:
-        with open(output_filename, 'w') as outfile:
+    with open(template_filename, 'r', encoding='utf-8') as infile:
+        with open(output_filename, 'w', encoding='utf-8') as outfile:
             contents = infile.read()
             contents = contents.replace('TEMPLATE_NAME', project)
             contents = contents.replace('TEMPLATE_GUID', guid)
@@ -38,12 +38,9 @@ def copy_app_template(project, guid):
     shutil.copy(os.path.join(TEMPLATES_FOLDER, 'pch.h'), project)
     shutil.copy(os.path.join(TEMPLATES_FOLDER, 'pch.cpp'), project)
     copy_template_file('Main.cpp', project, guid)
-    copy_template_file('AppTemplate_VS14.sln', project, guid)
-    copy_template_file('AppTemplate_VS14.vcxproj', project, guid)
-    copy_template_file('AppTemplate_VS14.vcxproj.filters', project, guid)
-    copy_template_file('AppTemplate_VS15.sln', project, guid)
-    copy_template_file('AppTemplate_VS15.vcxproj', project, guid)
-    copy_template_file('AppTemplate_VS15.vcxproj.filters', project, guid)
+    copy_template_file('AppTemplate.sln', project, guid)
+    copy_template_file('AppTemplate.vcxproj', project, guid)
+    copy_template_file('AppTemplate.vcxproj.filters', project, guid)
     for file in glob(os.path.join(TEMPLATES_FOLDER, '*.png')):
         shutil.copy(file, project)
 
@@ -51,10 +48,8 @@ def copy_lib_template(project, guid):
     '''Instantiates a new library project from a template'''
     shutil.copy(os.path.join(TEMPLATES_FOLDER, 'pch.h'), project)
     shutil.copy(os.path.join(TEMPLATES_FOLDER, 'pch.cpp'), project)
-    copy_template_file('LibTemplate_VS14.vcxproj', project, guid)
-    copy_template_file('LibTemplate_VS14.vcxproj.filters', project, guid)
-    copy_template_file('LibTemplate_VS15.vcxproj', project, guid)
-    copy_template_file('LibTemplate_VS15.vcxproj.filters', project, guid)
+    copy_template_file('LibTemplate.vcxproj', project, guid)
+    copy_template_file('LibTemplate.vcxproj.filters', project, guid)
 
 def create_project():
     if len(sys.argv) != 3 or sys.argv[1].lower() != 'app' and sys.argv[1].lower() != 'lib':
@@ -63,8 +58,8 @@ def create_project():
 
     project_name = sys.argv[2]
     folder_contents = set(os.listdir())
-    expected_folders = set(['3rdParty', 'Core', 'Tools'])
-    if not expected_folders.issubset(folder_contents):
+    expected_contents = set(['readme.md', 'Core', 'Tools'])
+    if not expected_contents.issubset(folder_contents):
         print('Run this script from the root of MiniEngine')
     elif project_name in folder_contents:
         print('Project already exists')

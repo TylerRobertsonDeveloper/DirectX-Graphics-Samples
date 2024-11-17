@@ -65,19 +65,21 @@ namespace SSAO
     NumVar Accentuation("Graphics/SSAO/Accentuation", 0.1f, 0.0f, 1.0f, 0.1f);
 
     IntVar HierarchyDepth("Graphics/SSAO/Hierarchy Depth", 3, 1, 4);
+
+    void LinearizeZ(ComputeContext& Context, DepthBuffer& Depth, ColorBuffer& LinearDepth, float zMagic);
 }
 
 namespace
 {
     RootSignature s_RootSignature;
-    ComputePSO s_DepthPrepare1CS;
-    ComputePSO s_DepthPrepare2CS;
-    ComputePSO s_Render1CS;
-    ComputePSO s_Render2CS;
-    ComputePSO s_BlurUpsampleBlend[2];	// Blend the upsampled result with the next higher resolution
-    ComputePSO s_BlurUpsampleFinal[2];	// Don't blend the result, just upsample it
-    ComputePSO s_LinearizeDepthCS;
-    ComputePSO s_DebugSSAOCS;
+    ComputePSO s_DepthPrepare1CS(L"SSAO: Depth Prepare 1 CS");
+    ComputePSO s_DepthPrepare2CS(L"SSAO: Depth Prepare 2 CS");
+    ComputePSO s_Render1CS(L"SSAO: Render 1 CS");
+    ComputePSO s_Render2CS(L"SSAO: Render 2 CS");
+    ComputePSO s_BlurUpsampleBlend[2] = { { L"SSAO: Blur Upsample Blend Low Q. CS" }, { L"SSAO: Blur Upsample Blend High Q. CS" } };	// Blend the upsampled result with the next higher resolution
+    ComputePSO s_BlurUpsampleFinal[2] = { { L"SSAO: Blur Upsample Final Low Q. CS" }, { L"SSAO: Blur Upsample Final High Q. CS" } };	// Don't blend the result, just upsample it
+    ComputePSO s_LinearizeDepthCS(L"SSAO: Linearize Depth CS");
+    ComputePSO s_DebugSSAOCS(L"SSAO: Debug CS");
 
     float SampleThickness[12];	// Pre-computed sample thicknesses
 }
@@ -111,18 +113,18 @@ void SSAO::Initialize( void )
     CreatePSO( s_BlurUpsampleFinal[0], g_pAoBlurUpsampleCS );
     CreatePSO( s_BlurUpsampleFinal[1], g_pAoBlurUpsamplePreMinCS );
 
-    SampleThickness[ 0] = sqrt(1.0f - 0.2f * 0.2f);
-    SampleThickness[ 1] = sqrt(1.0f - 0.4f * 0.4f);
-    SampleThickness[ 2] = sqrt(1.0f - 0.6f * 0.6f);
-    SampleThickness[ 3] = sqrt(1.0f - 0.8f * 0.8f);
-    SampleThickness[ 4] = sqrt(1.0f - 0.2f * 0.2f - 0.2f * 0.2f);
-    SampleThickness[ 5] = sqrt(1.0f - 0.2f * 0.2f - 0.4f * 0.4f);
-    SampleThickness[ 6] = sqrt(1.0f - 0.2f * 0.2f - 0.6f * 0.6f);
-    SampleThickness[ 7] = sqrt(1.0f - 0.2f * 0.2f - 0.8f * 0.8f);
-    SampleThickness[ 8] = sqrt(1.0f - 0.4f * 0.4f - 0.4f * 0.4f);
-    SampleThickness[ 9] = sqrt(1.0f - 0.4f * 0.4f - 0.6f * 0.6f);
-    SampleThickness[10] = sqrt(1.0f - 0.4f * 0.4f - 0.8f * 0.8f);
-    SampleThickness[11] = sqrt(1.0f - 0.6f * 0.6f - 0.6f * 0.6f);
+    SampleThickness[ 0] = sqrtf(1.0f - 0.2f * 0.2f);
+    SampleThickness[ 1] = sqrtf(1.0f - 0.4f * 0.4f);
+    SampleThickness[ 2] = sqrtf(1.0f - 0.6f * 0.6f);
+    SampleThickness[ 3] = sqrtf(1.0f - 0.8f * 0.8f);
+    SampleThickness[ 4] = sqrtf(1.0f - 0.2f * 0.2f - 0.2f * 0.2f);
+    SampleThickness[ 5] = sqrtf(1.0f - 0.2f * 0.2f - 0.4f * 0.4f);
+    SampleThickness[ 6] = sqrtf(1.0f - 0.2f * 0.2f - 0.6f * 0.6f);
+    SampleThickness[ 7] = sqrtf(1.0f - 0.2f * 0.2f - 0.8f * 0.8f);
+    SampleThickness[ 8] = sqrtf(1.0f - 0.4f * 0.4f - 0.4f * 0.4f);
+    SampleThickness[ 9] = sqrtf(1.0f - 0.4f * 0.4f - 0.6f * 0.6f);
+    SampleThickness[10] = sqrtf(1.0f - 0.4f * 0.4f - 0.8f * 0.8f);
+    SampleThickness[11] = sqrtf(1.0f - 0.6f * 0.6f - 0.6f * 0.6f);
 }
 
 void SSAO::Shutdown(void)
@@ -288,6 +290,29 @@ namespace SSAO
     }
 }
 
+void SSAO::LinearizeZ(ComputeContext& Context, const Camera& camera, uint32_t FrameIndex)
+{
+    DepthBuffer& Depth = g_SceneDepthBuffer;
+    ColorBuffer& LinearDepth = g_LinearDepth[FrameIndex];
+    const float NearClipDist = camera.GetNearClip();
+    const float FarClipDist = camera.GetFarClip();
+    const float zMagic = (FarClipDist - NearClipDist) / NearClipDist;
+
+    LinearizeZ(Context, Depth, LinearDepth, zMagic);
+}
+
+void SSAO::LinearizeZ(ComputeContext& Context, DepthBuffer& Depth, ColorBuffer& LinearDepth, float zMagic)
+{
+    Context.SetRootSignature(s_RootSignature);
+    Context.TransitionResource(Depth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    Context.SetConstants(0, zMagic);
+    Context.SetDynamicDescriptor(3, 0, Depth.GetDepthSRV());
+    Context.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    Context.SetDynamicDescriptors(2, 0, 1, &LinearDepth.GetUAV());
+    Context.SetPipelineState(s_LinearizeDepthCS);
+    Context.Dispatch2D(LinearDepth.GetWidth(), LinearDepth.GetHeight(), 16, 16);
+}
+
 void SSAO::Render( GraphicsContext& GfxContext, const Camera& camera )
 {
     const float* pProjMat = reinterpret_cast<const float*>(&camera.GetProjMatrix());
@@ -298,7 +323,8 @@ void SSAO::Render( GraphicsContext& GfxContext, const float* ProjMat, float Near
 {
     uint32_t FrameIndex = TemporalEffects::GetFrameIndexMod2();
 
-    ColorBuffer& LinearDepth = g_LinearDepth[FrameIndex];
+    DepthBuffer& Depth = g_SceneDepthBuffer;
+    ColorBuffer& LinearDepth = g_LinearDepth[ FrameIndex ];
 
     const float zMagic = (FarClipDist - NearClipDist) / NearClipDist;
 
@@ -306,27 +332,19 @@ void SSAO::Render( GraphicsContext& GfxContext, const float* ProjMat, float Near
     {
         ScopedTimer _prof(L"Generate SSAO", GfxContext);
 
+        // Clear the SSAO buffer
         GfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
         GfxContext.ClearColor(g_SSAOFullScreen);
         GfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-        if (!ComputeLinearZ)
-            return;
-
         ComputeContext& Context = GfxContext.GetComputeContext();
-        Context.SetRootSignature(s_RootSignature);
 
-        Context.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-        Context.SetConstants(0, zMagic);
-        Context.SetDynamicDescriptor(3, 0, g_SceneDepthBuffer.GetDepthSRV());
-
-        Context.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        Context.SetDynamicDescriptors(2, 0, 1, &LinearDepth.GetUAV());
-        Context.SetPipelineState(s_LinearizeDepthCS);
-        Context.Dispatch2D(LinearDepth.GetWidth(), LinearDepth.GetHeight(), 16, 16);
+        if (ComputeLinearZ)
+            LinearizeZ(Context, Depth, LinearDepth, zMagic);
 
         if (DebugDraw)
         {
+            Context.SetRootSignature(s_RootSignature);
             Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
             Context.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
             Context.SetDynamicDescriptors(2, 0, 1, &g_SceneColorBuffer.GetUAV());
@@ -338,7 +356,7 @@ void SSAO::Render( GraphicsContext& GfxContext, const float* ProjMat, float Near
         return;
     }
 
-    GfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    GfxContext.TransitionResource(Depth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     GfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     if (AsyncCompute)
@@ -358,8 +376,7 @@ void SSAO::Render( GraphicsContext& GfxContext, const float* ProjMat, float Near
 
     // Phase 1:  Decompress, linearize, downsample, and deinterleave the depth buffer
     Context.SetConstants(0, zMagic);
-    Context.SetDynamicDescriptor(3, 0, g_SceneDepthBuffer.GetDepthSRV() );
-
+    Context.SetDynamicDescriptor(3, 0, Depth.GetDepthSRV() );
     Context.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     Context.TransitionResource(g_DepthDownsize1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     Context.TransitionResource(g_DepthTiled1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);

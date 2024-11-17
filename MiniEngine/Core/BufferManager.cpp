@@ -13,7 +13,7 @@
 
 #include "pch.h"
 #include "BufferManager.h"
-#include "GraphicsCore.h"
+#include "Display.h"
 #include "CommandContext.h"
 #include "EsramAllocator.h"
 #include "TemporalEffects.h"
@@ -22,6 +22,7 @@ namespace Graphics
 {
     DepthBuffer g_SceneDepthBuffer;
     ColorBuffer g_SceneColorBuffer;
+    ColorBuffer g_SceneNormalBuffer;
     ColorBuffer g_PostEffectsBuffer;
     ColorBuffer g_VelocityBuffer;
     ColorBuffer g_OverlayBuffer;
@@ -66,6 +67,8 @@ namespace Graphics
     ColorBuffer g_MotionPrepBuffer;
     ColorBuffer g_LumaBuffer;
     ColorBuffer g_TemporalColor[2];
+    ColorBuffer g_TemporalMinBound;
+    ColorBuffer g_TemporalMaxBound;
     ColorBuffer g_aBloomUAV1[2];	// 640x384 (1/3)
     ColorBuffer g_aBloomUAV2[2];	// 320x192 (1/6)  
     ColorBuffer g_aBloomUAV3[2];	// 160x96  (1/12)
@@ -73,7 +76,6 @@ namespace Graphics
     ColorBuffer g_aBloomUAV5[2];	// 40x24   (1/48)
     ColorBuffer g_LumaLR;
     ByteAddressBuffer g_Histogram;
-    ByteAddressBuffer g_FXAAWorkCounters;
     ByteAddressBuffer g_FXAAWorkQueue;
     TypedBuffer g_FXAAColorQueue(DXGI_FORMAT_R11G11B10_FLOAT);
 
@@ -109,6 +111,7 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
     esram.PushStack();
 
         g_SceneColorBuffer.Create( L"Main Color Buffer", bufferWidth, bufferHeight, 1, DefaultHdrColorFormat, esram );
+        g_SceneNormalBuffer.Create( L"Normals Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, esram );
         g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT );
         g_PostEffectsBuffer.Create( L"Post Effects Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT );
 
@@ -124,11 +127,11 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 
             esram.PushStack(); // Begin opaque geometry
 
-                esram.PushStack();	// Begin Shading
+                esram.PushStack();    // Begin Shading
 
                     g_SSAOFullScreen.Create( L"SSAO Full Res", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R8_UNORM );
 
-                    esram.PushStack();	// Begin generating SSAO
+                    esram.PushStack();    // Begin generating SSAO
                         g_DepthDownsize1.Create( L"Depth Down-Sized 1", bufferWidth1, bufferHeight1, 1, DXGI_FORMAT_R32_FLOAT, esram );
                         g_DepthDownsize2.Create( L"Depth Down-Sized 2", bufferWidth2, bufferHeight2, 1, DXGI_FORMAT_R32_FLOAT, esram );
                         g_DepthDownsize3.Create( L"Depth Down-Sized 3", bufferWidth3, bufferHeight3, 1, DXGI_FORMAT_R32_FLOAT, esram );
@@ -173,6 +176,9 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
                 g_TemporalColor[1].Create( L"Temporal Color 1", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R16G16B16A16_FLOAT);
                 TemporalEffects::ClearHistory(InitContext);
 
+                g_TemporalMinBound.Create( L"Temporal Min Color", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R11G11B10_FLOAT);
+                g_TemporalMaxBound.Create( L"Temporal Max Color", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R11G11B10_FLOAT);
+
                 esram.PushStack();	// Begin motion blur
                     g_MotionPrepBuffer.Create( L"Motion Blur Prep", bufferWidth1, bufferHeight1, 1, HDR_MOTION_FORMAT, esram );
                 esram.PopStack();	// End motion blur
@@ -212,8 +218,6 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
                 const uint32_t kFXAAWorkSize = bufferWidth * bufferHeight / 4 + 128;
                 g_FXAAWorkQueue.Create( L"FXAA Work Queue", kFXAAWorkSize, sizeof(uint32_t), esram );
                 g_FXAAColorQueue.Create( L"FXAA Color Queue", kFXAAWorkSize, sizeof(uint32_t), esram );
-                g_FXAAWorkCounters.Create(L"FXAA Work Counters", 2, sizeof(uint32_t));
-                InitContext.ClearUAV(g_FXAAWorkCounters);
             esram.PopStack();	// End antialiasing
 
         esram.PopStack();	// End post processing
@@ -232,6 +236,7 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 
 void Graphics::ResizeDisplayDependentBuffers(uint32_t NativeWidth, uint32_t NativeHeight)
 {
+    (NativeWidth);
     g_OverlayBuffer.Create( L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM );
     g_HorizontalBuffer.Create( L"Bicubic Intermediate", g_DisplayWidth, NativeHeight, 1, DefaultHdrColorFormat );
 }
@@ -240,6 +245,7 @@ void Graphics::DestroyRenderingBuffers()
 {
     g_SceneDepthBuffer.Destroy();
     g_SceneColorBuffer.Destroy();
+    g_SceneNormalBuffer.Destroy();
     g_VelocityBuffer.Destroy();
     g_OverlayBuffer.Destroy();
     g_HorizontalBuffer.Destroy();
@@ -289,6 +295,8 @@ void Graphics::DestroyRenderingBuffers()
     g_LumaBuffer.Destroy();
     g_TemporalColor[0].Destroy();
     g_TemporalColor[1].Destroy();
+    g_TemporalMinBound.Destroy();
+    g_TemporalMaxBound.Destroy();
     g_aBloomUAV1[0].Destroy();
     g_aBloomUAV1[1].Destroy();
     g_aBloomUAV2[0].Destroy();
@@ -301,7 +309,6 @@ void Graphics::DestroyRenderingBuffers()
     g_aBloomUAV5[1].Destroy();
     g_LumaLR.Destroy();
     g_Histogram.Destroy();
-    g_FXAAWorkCounters.Destroy();
     g_FXAAWorkQueue.Destroy();
     g_FXAAColorQueue.Destroy();
 

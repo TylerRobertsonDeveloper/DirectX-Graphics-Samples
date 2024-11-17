@@ -11,16 +11,7 @@
 // Author:  James Stanard 
 //
 
-#define RootSig \
-    "RootFlags(0), " \
-    "RootConstants(b0, num32BitConstants = 4), " \
-    "DescriptorTable(SRV(t0, numDescriptors = 1))," \
-    "DescriptorTable(UAV(u0, numDescriptors = 4))," \
-    "StaticSampler(s0," \
-        "addressU = TEXTURE_ADDRESS_CLAMP," \
-        "addressV = TEXTURE_ADDRESS_CLAMP," \
-        "addressW = TEXTURE_ADDRESS_CLAMP," \
-        "filter = FILTER_MIN_MAG_MIP_LINEAR)"
+#include "CommonRS.hlsli"
 
 #ifndef NON_POWER_OF_TWO
 #define NON_POWER_OF_TWO 0
@@ -64,10 +55,10 @@ float4 LoadColor( uint Index )
 float3 ApplySRGBCurve(float3 x)
 {
     // This is exactly the sRGB curve
-    //return x < 0.0031308 ? 12.92 * x : 1.055 * pow(abs(x), 1.0 / 2.4) - 0.055;
+    //return select(x < 0.0031308, 12.92 * x, 1.055 * pow(abs(x), 1.0 / 2.4) - 0.055);
      
     // This is cheaper but nearly equivalent
-    return x < 0.0031308 ? 12.92 * x : 1.13005 * sqrt(abs(x - 0.00228)) - 0.13448 * x + 0.005719;
+    return select(x < 0.0031308, 12.92 * x, 1.13005 * sqrt(abs(x - 0.00228)) - 0.13448 * x + 0.005719);
 }
 
 float4 PackColor(float4 Linear)
@@ -79,7 +70,7 @@ float4 PackColor(float4 Linear)
 #endif
 }
 
-[RootSignature(RootSig)]
+[RootSignature(Common_RootSig)]
 [numthreads( 8, 8, 1 )]
 void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
 {

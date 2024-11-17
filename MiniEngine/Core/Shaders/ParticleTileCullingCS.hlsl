@@ -15,7 +15,7 @@
 #include "ParticleUtility.hlsli"
 
 StructuredBuffer<uint> g_BinParticles : register(t0);
-StructuredBuffer<uint> g_BinCounters : register(t1);
+ByteAddressBuffer g_BinCounters : register(t1);
 Texture2D<uint> g_DepthBounds : register(t2);
 StructuredBuffer<ParticleScreenData> g_VisibleParticles : register(t3);
 
@@ -85,7 +85,7 @@ void main( uint3 Gid : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_Grou
     // Each group is assigned a bin
     uint BinIndex = Gid.y * gBinsPerRow + Gid.x;
 
-    uint ParticleCountInBin = g_BinCounters[BinIndex];
+    uint ParticleCountInBin = g_BinCounters.Load(BinIndex * 4);
     if (ParticleCountInBin == 0)	
         return;
 
@@ -106,7 +106,7 @@ void main( uint3 Gid : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_Grou
     ParticleCountInBin = min(MAX_PARTICLES_PER_BIN, ParticleCountInBin);
 
     // Compute the next power of two for the bitonic sort
-    uint NextPow2 = countbits(ParticleCountInBin) <= 1 ? ParticleCountInBin : (2 << firstbithigh(ParticleCountInBin));
+    uint NextPow2 = countbits(ParticleCountInBin) <= 1 ? ParticleCountInBin : (2u << firstbithigh(ParticleCountInBin));
 
     // Fill in the sort key array.  Each sort key has passenger data (in the least signficant
     // bits, so that as the sort keys are moved around, they retain a pointer to the particle
@@ -129,7 +129,7 @@ void main( uint3 Gid : SV_GroupID, uint GI : SV_GroupIndex, uint3 GTid : SV_Grou
     for (uint Iter = 0; Iter < ParticleCountInBin; Iter += GROUP_THREAD_COUNT)
     {
         // Reset temporary particle intersection masks.  There are two words (64-bits) per thread.
-        [unroll]
+        //[unroll]
         for (uint C = GI; C < TILES_PER_BIN * MASK_WORDS_PER_ITER; C += GROUP_THREAD_COUNT)
             gs_IntersectionMasks[C] = 0;
 

@@ -17,6 +17,8 @@
 
 namespace GameCore
 {
+    extern bool gIsSupending;
+
     class IGameApp
     {
     public:
@@ -38,20 +40,19 @@ namespace GameCore
 
         // Optional UI (overlay) rendering pass.  This is LDR.  The buffer is already cleared.
         virtual void RenderUI( class GraphicsContext& ) {};
-    };
 
-    void RunApplication( IGameApp& app, const wchar_t* className );
+        // Override this in applications that use DirectX Raytracing to require a DXR-capable device.
+        virtual bool RequiresRaytracingSupport() const { return false; }
+    };
 }
 
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    #define MAIN_FUNCTION()  int wmain(int argc, wchar_t** argv)
-#else
-    #define MAIN_FUNCTION()  [Platform::MTAThread] int main(Platform::Array<Platform::String^>^)
-#endif
+namespace GameCore
+{
+    int RunApplication( IGameApp& app, const wchar_t* className, HINSTANCE hInst, int nCmdShow );
+}
 
 #define CREATE_APPLICATION( app_class ) \
-    MAIN_FUNCTION() \
+    int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE /*hPrevInstance*/, _In_ LPWSTR /*lpCmdLine*/, _In_ int nCmdShow) \
     { \
-        GameCore::RunApplication( app_class(), L#app_class ); \
-        return 0; \
+        return GameCore::RunApplication( app_class(), L#app_class, hInstance, nCmdShow ); \
     }

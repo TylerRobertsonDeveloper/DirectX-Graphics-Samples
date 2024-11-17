@@ -14,7 +14,7 @@
 #include "pch.h"
 #include "TextRenderer.h"
 #include "FileUtility.h"
-#include "TextureManager.h"
+#include "Texture.h"
 #include "SystemTime.h"
 #include "GraphicsCore.h"
 #include "CommandContext.h"
@@ -96,7 +96,7 @@ namespace TextRenderer
             for (uint16_t i = 0; i < NumGlyphs; ++i)
                 m_Dictionary[wcharList[i]] = glyphData[i];
 
-            m_Texture.Create( textureWidth, textureHeight, DXGI_FORMAT_R8_SNORM, texelData );
+            m_Texture.Create2D( textureWidth, textureWidth, textureHeight, DXGI_FORMAT_R8_SNORM, texelData );
 
             DEBUGPRINT( "Loaded SDF font:  %ls (ver. %d.%d)", fontName, header->majorVersion, header->minorVersion);
         }
@@ -181,8 +181,8 @@ namespace TextRenderer
     }
 
     RootSignature s_RootSignature;
-    GraphicsPSO s_TextPSO[2];	// 0: R8G8B8A8_UNORM   1: R11G11B10_FLOAT
-    GraphicsPSO s_ShadowPSO[2];	// 0: R8G8B8A8_UNORM   1: R11G11B10_FLOAT
+    GraphicsPSO s_TextPSO[2] = { {L"Text Render: Text R8G8B8A8_UNORM PSO"}, { L"Text Render: Text R11G11B10_FLOAT PSO" } };	// 0: R8G8B8A8_UNORM   1: R11G11B10_FLOAT
+    GraphicsPSO s_ShadowPSO[2] = { { L"Text Render: Shadow R8G8B8A8_UNORM PSO" },{ L"Text Render: Shadow R11G11B10_FLOAT PSO" } };		// 0: R8G8B8A8_UNORM   1: R11G11B10_FLOAT
 
 
 } // namespace TextRenderer
@@ -528,6 +528,7 @@ void TextContext::DrawFormattedString( const wchar_t* format, ... )
     va_list ap;
     va_start(ap, format);
     vswprintf( buffer, 256, format, ap );
+    va_end(ap);
     DrawString( wstring(buffer) );
 }
 
@@ -537,5 +538,6 @@ void TextContext::DrawFormattedString( const char* format, ... )
     va_list ap;
     va_start(ap, format);
     vsprintf_s( buffer, 256, format, ap );
+    va_end(ap);
     DrawString( string(buffer) );
 }

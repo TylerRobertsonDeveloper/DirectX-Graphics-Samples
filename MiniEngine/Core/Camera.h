@@ -106,11 +106,12 @@ namespace Math
 
         void UpdateProjMatrix( void );
 
-        float m_VerticalFOV;			// Field of view angle in radians
+        float m_VerticalFOV;	// Field of view angle in radians
         float m_AspectRatio;
         float m_NearClip;
         float m_FarClip;
-        bool m_ReverseZ;				// Invert near and far clip distances so that Z=0 is the far plane
+        bool m_ReverseZ;		// Invert near and far clip distances so that Z=1 at the near plane
+        bool m_InfiniteZ;       // Move the far plane to infinity
     };
 
     inline void BaseCamera::SetEyeAtUp( Vector3 eye, Vector3 at, Vector3 up )
@@ -137,7 +138,7 @@ namespace Math
         m_Basis = Matrix3(m_CameraToWorld.GetRotation());
     }
 
-    inline Camera::Camera() : m_ReverseZ(true)
+    inline Camera::Camera() : m_ReverseZ(true), m_InfiniteZ(false)
     {
         SetPerspectiveMatrix( XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f );
     }

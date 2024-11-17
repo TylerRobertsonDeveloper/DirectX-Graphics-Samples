@@ -11,7 +11,7 @@
 // Author:  James Stanard 
 //
 
-#include "TemporalRS.hlsli"
+#include "CommonRS.hlsli"
 #include "ShaderUtility.hlsli"
 #include "PixelPacking_Velocity.hlsli"
 
@@ -158,7 +158,7 @@ void ApplyTemporalBlend(uint2 ST, uint ldsIdx, float3 BoxMin, float3 BoxMax)
     OutTemporal[ST] = float4(TemporalColor, 1) * TemporalWeight;
 }
 
-[RootSignature(Temporal_RootSig)]
+[RootSignature(Common_RootSig)]
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID, uint GI : SV_GroupIndex, uint3 GTid : SV_GroupThreadID, uint3 Gid : SV_GroupID)
 {
@@ -193,8 +193,6 @@ void main(uint3 DTid : SV_DispatchThreadID, uint GI : SV_GroupIndex, uint3 GTid 
 
     uint Idx0 = GTid.x * 2 + GTid.y * kLdsPitch + kLdsPitch + 1;
     uint Idx1 = Idx0 + 1;
-
-    GroupMemoryBarrierWithGroupSync();
 
     float3 BoxMin, BoxMax;
     GetBBoxForPair(Idx0, Idx1, BoxMin, BoxMax);

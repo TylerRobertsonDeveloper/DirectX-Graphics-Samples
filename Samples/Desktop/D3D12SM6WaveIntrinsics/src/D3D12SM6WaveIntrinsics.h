@@ -37,9 +37,10 @@ public:
     virtual void OnDestroy();
     virtual void OnKeyDown(UINT8 key);
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
-	virtual void OnMouseMove(UINT x, UINT y);
-	virtual void OnLeftButtonDown(UINT x, UINT y);
+    virtual void OnMouseMove(UINT x, UINT y);
+    virtual void OnLeftButtonDown(UINT x, UINT y);
     virtual void OnLeftButtonUp(UINT x, UINT y);
+    virtual IDXGISwapChain* GetSwapchain() { return m_swapChain.Get(); }
 
 private:
     // In this sample we overload the meaning of FrameCount to mean both the maximum
@@ -72,7 +73,7 @@ private:
         float time;
         UINT renderingMode;
         UINT laneSize;
-        UINT padding;
+        UINT padding[40]; // Padding so the struct is 256-byte aligned.
     };
 
     // Pipeline objects.
@@ -104,7 +105,7 @@ private:
     SceneConstantBuffer m_constantBufferData;
     UINT8* m_pCbSrvDataBegin;
     float m_mousePosition[2];
-	bool m_mouseLeftButtonDown;
+    bool m_mouseLeftButtonDown;
 
     // Synchronization objects.
     UINT m_frameIndex;
@@ -119,9 +120,11 @@ private:
     // UILayer
     std::shared_ptr<UILayer> m_uiLayer;
 
-	void CreateDevice(const ComPtr<IDXGIFactory4>& factory);
+    void CreateDevice(const ComPtr<IDXGIFactory4>& factory);
     void LoadPipeline();
     void LoadAssets();
+    void RestoreD3DResources();
+    void ReleaseD3DResources();
     void LoadSizeDependentResources();
     void MoveToNextFrame();
     void WaitForGpu();

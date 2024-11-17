@@ -14,8 +14,7 @@
 #include "pch.h"
 #include "FileUtility.h"
 #include <fstream>
-#include <mutex>
-#include <zlib.h> // From NuGet package 
+//#include <zlib.h> // From NuGet package 
 
 using namespace std;
 using namespace Utility;
@@ -25,7 +24,7 @@ namespace Utility
     ByteArray NullFile = make_shared<vector<byte> > (vector<byte>() );
 }
 
-ByteArray DecompressZippedFile( wstring& fileName );
+//ByteArray DecompressZippedFile( wstring& fileName );
 
 ByteArray ReadFileHelper(const wstring& fileName)
 {
@@ -38,25 +37,24 @@ ByteArray ReadFileHelper(const wstring& fileName)
     if (!file)
         return NullFile;
 
-    Utility::ByteArray byteArray = make_shared<vector<byte> >( file.seekg(0, ios::end).tellg() );
-    file.seekg(0, ios::beg).read( (char*)byteArray->data(), byteArray->size() );
+    Utility::ByteArray byteArray = make_shared<vector<byte> >( fileStat.st_size );
+    file.read( (char*)byteArray->data(), byteArray->size() );
     file.close();
-
-    ASSERT(byteArray->size() == (size_t)fileStat.st_size);
 
     return byteArray;
 }
 
 ByteArray ReadFileHelperEx( shared_ptr<wstring> fileName)
 {
-    std::wstring zippedFileName = *fileName + L".gz";
-    ByteArray firstTry = DecompressZippedFile(zippedFileName);
-    if (firstTry != NullFile)
-        return firstTry;
+    //std::wstring zippedFileName = *fileName + L".gz";
+    //ByteArray firstTry = DecompressZippedFile(zippedFileName);
+    //if (firstTry != NullFile)
+    //    return firstTry;
 
     return ReadFileHelper(*fileName);
 }
 
+/*
 ByteArray Inflate(ByteArray CompressedSource, int& err, uint32_t ChunkSize = 0x100000 ) 
 {
     // Create a dynamic buffer to hold compressed blocks
@@ -97,7 +95,7 @@ ByteArray Inflate(ByteArray CompressedSource, int& err, uint32_t ChunkSize = 0x1
     {
         ASSERT(remaining > 0);
 
-        size_t CopySize = min(remaining, (size_t)ChunkSize);
+        size_t CopySize = remaining < ChunkSize ? remaining : ChunkSize;
 
         memcpy(curDest, blocks[i].get(), CopySize);
         curDest = (byte*)curDest + CopySize;
@@ -125,6 +123,7 @@ ByteArray DecompressZippedFile( wstring& fileName )
 
     return DecompressedFile;
 }
+*/
 
 ByteArray Utility::ReadFileSync( const wstring& fileName)
 {

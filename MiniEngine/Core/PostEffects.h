@@ -37,8 +37,6 @@ namespace PostEffects
     extern NumVar BloomThreshold;
     extern NumVar BloomStrength;
 
-    extern BoolVar EnableFXAA;
-
     void Initialize( void );
     void Shutdown( void );
     void Render( void );

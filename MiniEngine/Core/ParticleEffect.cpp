@@ -22,9 +22,9 @@
 #include "Math/Random.h"
 
 using namespace Math;
-using namespace ParticleEffects;
+using namespace ParticleEffectManager;
 
-namespace ParticleEffects
+namespace ParticleEffectManager
 {
     extern ComputePSO s_ParticleSpawnCS;
     extern ComputePSO s_ParticleUpdateCS;
@@ -105,6 +105,8 @@ void ParticleEffect::LoadDeviceResources(ID3D12Device* device)
 
 void ParticleEffect::Update(ComputeContext& CompContext,  float timeDelta)
 {
+    if (timeDelta == 0.0f)
+        return;
 
     m_ElapsedTime += timeDelta;
     m_EffectProperties.EmitProperties.LastEmitPosW = m_EffectProperties.EmitProperties.EmitPosW;

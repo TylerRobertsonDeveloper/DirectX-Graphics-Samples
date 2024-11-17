@@ -13,11 +13,19 @@
 
 #pragma once
 
+#include "SamplerManager.h"
+
 class SamplerDesc;
 class CommandSignature;
+class RootSignature;
+class ComputePSO;
+class GraphicsPSO;
 
 namespace Graphics
 {
+    void InitializeCommonState(void);
+    void DestroyCommonState(void);
+
     extern SamplerDesc SamplerLinearWrapDesc;
     extern SamplerDesc SamplerAnisoWrapDesc;
     extern SamplerDesc SamplerShadowDesc;
@@ -62,6 +70,22 @@ namespace Graphics
     extern CommandSignature DispatchIndirectCommandSignature;
     extern CommandSignature DrawIndirectCommandSignature;
 
-    void InitializeCommonState(void);
-    void DestroyCommonState(void);
+    enum eDefaultTexture
+    {
+        kMagenta2D,  // Useful for indicating missing textures
+        kBlackOpaque2D,
+        kBlackTransparent2D,
+        kWhiteOpaque2D,
+        kWhiteTransparent2D,
+        kDefaultNormalMap,
+        kBlackCubeMap,
+
+        kNumDefaultTextures
+    };
+    D3D12_CPU_DESCRIPTOR_HANDLE GetDefaultTexture( eDefaultTexture texID );
+
+    extern RootSignature g_CommonRS;
+    extern ComputePSO g_GenerateMipsLinearPSO[4];
+    extern ComputePSO g_GenerateMipsGammaPSO[4];
+    extern GraphicsPSO g_DownsampleDepthPSO;
 }

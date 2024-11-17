@@ -7,6 +7,8 @@ It implements essentially the same memory management behavior that a D3D11 app w
 
 The library should be seen as a stepping stone for D3D12 apps to get good performance when under memory pressure while leaving the door very open for apps to make optimizations that beat D3D11-style memory management algorithms.
 
+Make sure that you visit the [DirectX Landing Page](https://devblogs.microsoft.com/directx/landing-page/) for more resources for DirectX developers.
+
 ## What happens if I don't manage memory (using this library or otherwise)?
 Without this library or any other sort of memory management, there is a real and significant GPU performance hit when your app uses more memory than is available.  This is most noticeable on low memory (1GB/2GB) boards but can easily happen on 4GB cards as well (e.g. 4k, ultra settings, etc).  The OS's Video Memory Manager (VidMM) will do its absolute best to ensure your application can always make forward progress but any contingencies that VidMM has to use to keep your app running often come with a performance hit.  It is critical that applications manage their memory instead of relying on VidMM to make general case decisions which will invariably be non-optimal.
 
@@ -46,6 +48,9 @@ Here are the high level steps for using the library:
   1. It's essentially a list of ```ManagedObjects``` which will need to be resident when a command list executes
 5. Use ```ResidencyManager::ExecuteCommandLists``` to execute the workload which takes a command queue, array of command lists, an array of residency sets, and a count
   1. This will execute the command lists and ensure all of the heaps/committed resources that you need to execute are resident at the right times
+
+### Optional Features
+This sample has been updated to build against the Windows 10 Anniversary Update SDK. In this SDK a new revision of Root Signatures is available for Direct3D 12 apps to use. Root Signature 1.1 allows for apps to declare when descriptors in a descriptor heap won't change or the data descriptors point to won't change.  This allows the option for drivers to make optimizations that might be possible knowing that something (like a descriptor or the memory it points to) is static for some period of time.
 
 ### FAQs
 

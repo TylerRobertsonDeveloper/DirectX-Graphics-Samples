@@ -21,12 +21,7 @@ using namespace Graphics;
 
 void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Height, DXGI_FORMAT Format, D3D12_GPU_VIRTUAL_ADDRESS VidMemPtr )
 {
-    D3D12_RESOURCE_DESC ResourceDesc = DescribeTex2D(Width, Height, 1, 1, Format, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-
-    D3D12_CLEAR_VALUE ClearValue = {};
-    ClearValue.Format = Format;
-    CreateTextureResource(Graphics::g_Device, Name, ResourceDesc, ClearValue, VidMemPtr);
-    CreateDerivedViews(Graphics::g_Device, Format);
+    Create(Name, Width, Height, 1, Format, VidMemPtr);
 }
 
 void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Height, uint32_t Samples, DXGI_FORMAT Format, D3D12_GPU_VIRTUAL_ADDRESS VidMemPtr )
@@ -40,12 +35,12 @@ void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Hei
     CreateDerivedViews(Graphics::g_Device, Format);
 }
 
-void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Height, DXGI_FORMAT Format, EsramAllocator& )
+void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Height, DXGI_FORMAT Format, EsramAllocator& Allocator )
 {
-    Create(Name, Width, Height, Format);
+    Create(Name, Width, Height, 1, Format, Allocator);
 }
 
-void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Height, uint32_t Samples, DXGI_FORMAT Format, EsramAllocator& Allocator )
+void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Height, uint32_t Samples, DXGI_FORMAT Format, EsramAllocator& )
 {
     Create(Name, Width, Height, Samples, Format);
 }
@@ -123,6 +118,8 @@ void DepthBuffer::CreateDerivedViews( ID3D12Device* Device, DXGI_FORMAT Format )
             m_hStencilSRV = Graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         SRVDesc.Format = stencilReadFormat;
+        SRVDesc.Texture2D.PlaneSlice = 1;
+
         Device->CreateShaderResourceView( Resource, &SRVDesc, m_hStencilSRV );
     }
 }

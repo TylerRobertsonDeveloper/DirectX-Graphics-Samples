@@ -265,8 +265,8 @@ private:
 namespace
 {
     RootSignature s_RootSignature;
-    GraphicsPSO s_RenderPerfGraphPSO;
-    GraphicsPSO s_GraphBackgroundPSO;
+    GraphicsPSO s_RenderPerfGraphPSO(L"Graph Renderer: Render Perf Graph PSO");
+    GraphicsPSO s_GraphBackgroundPSO(L"Graph Renderer: Render Graph Background PSO");
     uint32_t s_FrameID;
     GraphVector GlobalGraphs = GraphVector(2, 1);
     GraphVector ProfileGraphs = GraphVector(MAX_ACTIVE_PROFILE_GRAPHS, PROFILE_DEBUG_VAR_COUNT);

@@ -13,48 +13,47 @@
 
 #include "ModelAssimp.h"
 
+#include "../Model/ModelLoader.h"
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+using namespace std;
+
 const char* AssimpModel::s_FormatString[] =
 {
-	"none",
+	"",
 	"h3d",
+    "mini"
 };
 static_assert(_countof(AssimpModel::s_FormatString) == AssimpModel::formats, "s_FormatString doesn't match format enum");
 
-int AssimpModel::FormatFromFilename(const char *filename)
+int AssimpModel::FormatFromFilename(const string& filename)
 {
-	const char *p = strrchr(filename, '.');
-	if (!p || *p == 0)
-		return format_none;
+    string ext = Utility::ToLower(Utility::GetFileExtension(filename));
 
 	for (int n = 1; n < formats; n++)
-	{
-		if (_stricmp(p + 1, s_FormatString[n]) == 0)
+		if (ext == s_FormatString[n])
 			return n;
-	}
 
 	return format_none;
 }
 
-bool AssimpModel::Load(const char *filename)
+bool AssimpModel::Load(const string& filename)
 {
 	Clear();
 
-	int format = FormatFromFilename(filename);
-
 	bool rval = false;
 	bool needToOptimize = true;
-	switch (format)
+	switch (FormatFromFilename(filename))
 	{
 	case format_none:
 		rval = LoadAssimp(filename);
 		break;
 
 	case format_h3d:
-		rval = LoadH3D(filename);
+		rval = LoadH3D(Utility::UTF8ToWideString(filename));
 		needToOptimize = false;
 		break;
 	}
@@ -68,26 +67,30 @@ bool AssimpModel::Load(const char *filename)
 	return true;
 }
 
-bool AssimpModel::Save(const char *filename) const
+bool AssimpModel::Save(const string& filename) const
 {
-	int format = FormatFromFilename(filename);
+    switch (FormatFromFilename(filename))
+    {
+        default:
+		    break;
 
-	bool rval = false;
-	switch (format)
-	{
-	case format_none:
-		break;
+	    case format_h3d:
+            if (SaveH3D(Utility::UTF8ToWideString(filename)))
+                return true;
 
-	case format_h3d:
-		rval = SaveH3D(filename);
-		break;
-	}
+        case format_mini:
+        {
+            Renderer::ModelData model;
+            if (BuildModel(model) && Renderer::SaveModel(Utility::UTF8ToWideString(filename), model))
+                return true;
+        }
+    }
 
-	return rval;
+    return false;
 }
 
 
-bool AssimpModel::LoadAssimp(const char *filename)
+bool AssimpModel::LoadAssimp(const string& filename)
 {
     Assimp::Importer importer;
 
@@ -165,50 +168,28 @@ bool AssimpModel::LoadAssimp(const char *filename)
         srcMat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texDiffusePath);
         srcMat->Get(AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0), texSpecularPath);
         srcMat->Get(AI_MATKEY_TEXTURE(aiTextureType_EMISSIVE, 0), texEmissivePath);
-        srcMat->Get(AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0), texNormalPath);
+        //srcMat->Get(AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0), texNormalPath);
+        srcMat->Get(AI_MATKEY_TEXTURE(aiTextureType_AMBIENT, 0), texNormalPath);
         srcMat->Get(AI_MATKEY_TEXTURE(aiTextureType_LIGHTMAP, 0), texLightmapPath);
         srcMat->Get(AI_MATKEY_TEXTURE(aiTextureType_REFLECTION, 0), texReflectionPath);
 
-        dstMat->diffuse = Vector3(diffuse.r, diffuse.g, diffuse.b);
-        dstMat->specular = Vector3(specular.r, specular.g, specular.b);
-        dstMat->ambient = Vector3(ambient.r, ambient.g, ambient.b);
-        dstMat->emissive = Vector3(emissive.r, emissive.g, emissive.b);
-        dstMat->transparent = Vector3(transparent.r, transparent.g, transparent.b);
+        dstMat->diffuse = Color(diffuse.r, diffuse.g, diffuse.b);
+        dstMat->specular = Color(specular.r, specular.g, specular.b);
+        dstMat->ambient = Color(ambient.r, ambient.g, ambient.b);
+        dstMat->emissive = Color(emissive.r, emissive.g, emissive.b);
+        dstMat->transparent = Color(transparent.r, transparent.g, transparent.b);
         dstMat->opacity = opacity;
         dstMat->shininess = shininess;
         dstMat->specularStrength = specularStrength;
 
         char *pRem = nullptr;
 
-        strncpy_s(dstMat->texDiffusePath, "models/", Material::maxTexPath - 1);
-        strncat_s(dstMat->texDiffusePath, texDiffusePath.C_Str(), Material::maxTexPath - 1);
-        pRem = strrchr(dstMat->texDiffusePath, '.');
-        while (pRem != nullptr && *pRem != 0) *(pRem++) = 0; // remove extension
-
-        strncpy_s(dstMat->texSpecularPath, "models/", Material::maxTexPath - 1);
-        strncat_s(dstMat->texSpecularPath, texSpecularPath.C_Str(), Material::maxTexPath - 1);
-        pRem = strrchr(dstMat->texSpecularPath, '.');
-        while (pRem != nullptr && *pRem != 0) *(pRem++) = 0; // remove extension
-
-        strncpy_s(dstMat->texEmissivePath, "models/", Material::maxTexPath - 1);
-        strncat_s(dstMat->texEmissivePath, texEmissivePath.C_Str(), Material::maxTexPath - 1);
-        pRem = strrchr(dstMat->texEmissivePath, '.');
-        while (pRem != nullptr && *pRem != 0) *(pRem++) = 0; // remove extension
-
-        strncpy_s(dstMat->texNormalPath, "models/", Material::maxTexPath - 1);
-        strncat_s(dstMat->texNormalPath, texNormalPath.C_Str(), Material::maxTexPath - 1);
-        pRem = strrchr(dstMat->texNormalPath, '.');
-        while (pRem != nullptr && *pRem != 0) *(pRem++) = 0; // remove extension
-
-        strncpy_s(dstMat->texLightmapPath, "models/", Material::maxTexPath - 1);
-        strncat_s(dstMat->texLightmapPath, texLightmapPath.C_Str(), Material::maxTexPath - 1);
-        pRem = strrchr(dstMat->texLightmapPath, '.');
-        while (pRem != nullptr && *pRem != 0) *(pRem++) = 0; // remove extension
-
-        strncpy_s(dstMat->texReflectionPath, "models/", Material::maxTexPath - 1);
-        strncat_s(dstMat->texReflectionPath, texReflectionPath.C_Str(), Material::maxTexPath - 1);
-        pRem = strrchr(dstMat->texReflectionPath, '.');
-        while (pRem != nullptr && *pRem != 0) *(pRem++) = 0; // remove extension
+        strncpy_s(dstMat->texDiffusePath, texDiffusePath.C_Str(), Material::maxTexPath - 1);
+        strncpy_s(dstMat->texSpecularPath, texSpecularPath.C_Str(), Material::maxTexPath - 1);
+        strncpy_s(dstMat->texEmissivePath, texEmissivePath.C_Str(), Material::maxTexPath - 1);
+        strncpy_s(dstMat->texNormalPath, texNormalPath.C_Str(), Material::maxTexPath - 1);
+        strncpy_s(dstMat->texLightmapPath, texLightmapPath.C_Str(), Material::maxTexPath - 1);
+        strncpy_s(dstMat->texReflectionPath, texReflectionPath.C_Str(), Material::maxTexPath - 1);
 
         aiString matName;
         srcMat->Get(AI_MATKEY_NAME, matName);
