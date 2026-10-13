@@ -29,7 +29,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>Core</RootNamespace>
-    <ProjectGuid>{86A58508-0D6A-4786-A32F-01A301FDC6F3}</ProjectGuid>
+    <ProjectGuid>{115955AA-6F22-6151-B9C8-6C7C25B13769}</ProjectGuid>
     <DefaultLanguage>en-US</DefaultLanguage>
     <Keyword>Win32Proj</Keyword>
     <MinimumVisualStudioVersion>16.0</MinimumVisualStudioVersion>
@@ -39,7 +39,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <EmbedManifest>false</EmbedManifest>
     <GenerateManifest>false</GenerateManifest>

@@ -28,7 +28,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>ModelViewer</RootNamespace>
-    <ProjectGuid>{1813BD6E-E2AF-4A3C-8C54-4E72119DA993}</ProjectGuid>
+    <ProjectGuid>{577E5494-6923-85C7-46B8-0CB7589731E8}</ProjectGuid>
     <DefaultLanguage>en-US</DefaultLanguage>
     <Keyword>Win32Proj</Keyword>
     <PlatformToolset>v142</PlatformToolset>
@@ -39,7 +39,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>

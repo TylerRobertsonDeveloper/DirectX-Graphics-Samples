@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="ARM64" />
   </Configurations>
-  <Project Path="D3D12MemoryManagement.vcxproj" />
+  <Project Path="D3D12MemoryManagement.vcxproj" Id="db40d747-0c18-47ba-a8e8-316562316632" />
 </Solution>
