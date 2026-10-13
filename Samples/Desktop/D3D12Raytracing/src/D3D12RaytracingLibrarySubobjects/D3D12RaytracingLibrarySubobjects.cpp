@@ -17,6 +17,9 @@
 using namespace std;
 using namespace DX;
 
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = u8".\\D3D12\\"; }
+
 const wchar_t* D3D12RaytracingLibrarySubobjects::c_hitGroupName = L"MyHitGroup";
 const wchar_t* D3D12RaytracingLibrarySubobjects::c_raygenShaderName = L"MyRaygenShader";
 const wchar_t* D3D12RaytracingLibrarySubobjects::c_closestHitShaderName = L"MyClosestHitShader";
@@ -97,9 +100,9 @@ void D3D12RaytracingLibrarySubobjects::InitializeScene()
     // Setup camera.
     {
         // Initialize the view and projection inverse matrices.
-        m_eye = { 0.0f, 2.0f, -5.0f, 1.0f };
-        m_at = { 0.0f, 0.0f, 0.0f, 1.0f };
-        XMVECTOR right = { 1.0f, 0.0f, 0.0f, 0.0f };
+        m_eye = XMVectorSet(0.0f, 2.0f, -5.0f, 1.0f);
+        m_at = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+        XMVECTOR right = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 
         XMVECTOR direction = XMVector4Normalize(m_at - m_eye);
         m_up = XMVector3Normalize(XMVector3Cross(direction, right));

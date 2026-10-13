@@ -22,6 +22,9 @@ In the Samples directory, you will find samples that attempt to break off specif
     
     <img src="Samples/Desktop/D3D12Raytracing/src/D3D12RaytracingRealTimeDenoisedAmbientOcclusion/Screenshot_DX12U.png" alt="D3D12 Raytracing Real-Time Denoised Ambient Occlusion preview" height="200">
 
+### Guides
+1. [D3D12 Advanced Shader Delivery](Samples/Desktop/D3D12AdvancedShaderDelivery/readme.md): This guide walks through integrating Advanced Shader Delivery (ASD), which reduces shader compilation times, power consumption, and disruptive stuttering by precompiling your title's shaders and delivering them to the player's device. It covers creating a State Object Database (SODB), testing the resulting Precompiled Shader Database (PSDB), and deploying to a storefront.
+
 ## MiniEngine: A DirectX 12 Engine Starter Kit
 In addition to the samples, we are announcing the first DirectX 12 preview release of the MiniEngine.
 
